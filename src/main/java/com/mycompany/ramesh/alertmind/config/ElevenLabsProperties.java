@@ -16,6 +16,11 @@ public record ElevenLabsProperties(
 		@NotBlank String voiceId,
 		@NotBlank String language,
 		@NotNull Resource systemPromptFile,
-		@NotNull Resource firstMessageFile
+		@NotNull Resource firstMessageFile,
+		@NotBlank String callsPath,
+		@NotBlank String agentId,
+		@NotBlank String agentPhoneNumberId,
+		String statusCallbackUrl,
+		java.util.List<String> statusCallbackEvents
 ) {
 }

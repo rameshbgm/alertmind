@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.mycompany.ramesh.alertmind.config.ElevenLabsProperties;
 import com.mycompany.ramesh.alertmind.dto.CreateElevenLabsAgentRequest;
 import com.mycompany.ramesh.alertmind.dto.CreateElevenLabsAgentResponse;
+import com.mycompany.ramesh.alertmind.dto.CreateOutboundCallRequest;
+import com.mycompany.ramesh.alertmind.dto.CreateOutboundCallResponse;
 import com.mycompany.ramesh.alertmind.dto.IncidentCreateRequest;
 import com.mycompany.ramesh.alertmind.exception.UpstreamServiceException;
 import jakarta.annotation.PostConstruct;
@@ -18,6 +20,8 @@ import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class ElevenLabsClient {
@@ -113,12 +117,66 @@ public class ElevenLabsClient {
 				.doOnError(error -> log.error("Failed to delete agent {}: {}", agentId, error.getMessage()));
 	}
 
+	public Mono<CreateOutboundCallResponse> createOutboundCall(CreateOutboundCallRequest request) {
+		var payload = ElevenLabsOutboundCallPayload.from(request, properties);
+		log.info("Creating ElevenLabs outbound call to: {}", request.toNumber());
+
+		return webClient.post()
+				.uri(properties.callsPath())
+				.bodyValue(payload)
+				.retrieve()
+				.onStatus(HttpStatusCode::isError, response ->
+					response.bodyToMono(String.class)
+						.defaultIfEmpty("")
+						.flatMap(errorBody -> {
+							log.error("ElevenLabs call API error - Status: {}, Body: {}",
+									response.statusCode(), errorBody);
+							return Mono.error(new UpstreamServiceException(
+									response.statusCode(), errorBody));
+						}))
+				.bodyToMono(JsonNode.class)
+				.doOnSuccess(response -> log.info("Successfully created call: {}", extractCallId(response)))
+				.doOnError(error -> log.error("Failed to create call: {}", error.getMessage()))
+				.map(response -> new CreateOutboundCallResponse(extractCallId(response), response));
+	}
+
+	public String getAgentId() {
+		return properties.agentId();
+	}
+
+	public String getAgentPhoneNumberId() {
+		return properties.agentPhoneNumberId();
+	}
+
+	public String extractCallStatus(JsonNode response) {
+		if (response == null) {
+			return null;
+		}
+		if (response.hasNonNull("status")) {
+			return response.get("status").asText();
+		}
+		return null;
+	}
+
 	private static String extractAgentId(JsonNode response) {
 		if (response == null) {
 			return null;
 		}
 		if (response.hasNonNull("agent_id")) {
 			return response.get("agent_id").asText();
+		}
+		if (response.hasNonNull("id")) {
+			return response.get("id").asText();
+		}
+		return null;
+	}
+
+	private static String extractCallId(JsonNode response) {
+		if (response == null) {
+			return null;
+		}
+		if (response.hasNonNull("call_id")) {
+			return response.get("call_id").asText();
 		}
 		if (response.hasNonNull("id")) {
 			return response.get("id").asText();
@@ -166,4 +224,34 @@ public class ElevenLabsClient {
 	private record Tts(
 			@JsonProperty("voice_id") String voiceId
 	) {}
+
+	private record ElevenLabsOutboundCallPayload(
+			@JsonProperty("agent_id") String agentId,
+			@JsonProperty("agent_phone_number_id") String agentPhoneNumberId,
+			@JsonProperty("to_number") String toNumber,
+			@JsonProperty("dynamic_variables") Map<String, Object> dynamicVariables,
+			@JsonProperty("status_callback_url") String statusCallbackUrl,
+			@JsonProperty("status_callback_events") List<String> statusCallbackEvents
+	) {
+		private static ElevenLabsOutboundCallPayload from(CreateOutboundCallRequest request,
+											ElevenLabsProperties props) {
+			java.util.Map<String, Object> dynamicVariables = new java.util.LinkedHashMap<>();
+			dynamicVariables.put("incident_number", request.incidentNumber());
+			dynamicVariables.put("priority", request.priority());
+			dynamicVariables.put("short_description", request.shortDescription());
+			if (request.description() != null) dynamicVariables.put("description", request.description());
+			if (request.incidentDateTime() != null) dynamicVariables.put("incident_date_time", request.incidentDateTime().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+			if (request.errorDetails() != null) dynamicVariables.put("error_details", request.errorDetails());
+			if (request.possibleFix() != null) dynamicVariables.put("possible_fix", request.possibleFix());
+
+			return new ElevenLabsOutboundCallPayload(
+					props.agentId(),
+					props.agentPhoneNumberId(),
+					request.toNumber(),
+					dynamicVariables,
+					props.statusCallbackUrl(),
+					props.statusCallbackEvents()
+			);
+		}
+	}
 }

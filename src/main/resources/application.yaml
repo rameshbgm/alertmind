@@ -28,6 +28,16 @@ app:
     language: en
     system-prompt-file: classpath:prompts/system-prompt.txt
     first-message-file: classpath:prompts/first-message.txt
+    calls-path: /v1/convai/phone-calls
+    agent-id: ${ELEVENLABS_AGENT_ID}
+    agent-phone-number-id: ${ELEVENLABS_AGENT_PHONE_NUMBER_ID}
+    status-callback-url: ${ELEVENLABS_STATUS_CALLBACK_URL:}
+    status-callback-events:
+      - call.initiated
+      - call.ringing
+      - call.answered
+      - call.completed
+      - call.failed
   twilio:
     account-sid: ${TWILIO_ACCOUNT_SID}
     auth-token: ${TWILIO_AUTH_TOKEN}
