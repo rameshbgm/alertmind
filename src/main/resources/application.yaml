@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: alert-mind
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/alertmind
+      database: alertmind
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+    elevenlabs:
+      api-key: ${ELEVENLABS_API_KEY}
+
+app:
+  elevenlabs:
+    base-url: https://api.elevenlabs.io
+    api-key: ${ELEVENLABS_API_KEY}
+    agents-path: /v1/agents
+    agent-name: Singtel IT Assist Incident Agent
+    voice-id: ${ELEVENLABS_VOICE_ID:21m00Tcm4TlvDq8ikWAM}
+    language: en
+    system-prompt-file: classpath:prompts/system-prompt.txt
+    first-message-file: classpath:prompts/first-message.txt
+  twilio:
+    account-sid: ${TWILIO_ACCOUNT_SID}
+    auth-token: ${TWILIO_AUTH_TOKEN}
+    from-number: ${TWILIO_FROM_NUMBER}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,6 @@
+Hello, this is an automated call from Singtel IT Assist regarding a high-priority incident.
+Incident number: {{incident_number}}.
+Short description: {{short_description}}.
+Please check your IT assist for full incident details and take immediate action.
+If you have already acknowledged this incident, no further action is needed.
+Thank you.
