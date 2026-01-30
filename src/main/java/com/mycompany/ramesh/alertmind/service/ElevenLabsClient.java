@@ -139,6 +139,27 @@ public class ElevenLabsClient {
 				.doOnError(error -> log.error("Failed to create call: {}", error.getMessage()))
 				.map(response -> new CreateOutboundCallResponse(extractCallId(response), response));
 	}
+	
+	public Mono<JsonNode> getCallTranscript(String callId) {
+		log.info("Fetching transcript for call: {}", callId);
+		
+		return webClient.get()
+				.uri(uriBuilder -> uriBuilder.path(properties.callsPath()).path("/{callId}")
+						.build(callId))
+				.retrieve()
+				.onStatus(HttpStatusCode::isError, response ->
+					response.bodyToMono(String.class)
+						.defaultIfEmpty("")
+						.flatMap(errorBody -> {
+							log.error("ElevenLabs get call API error - Status: {}, Body: {}",
+									response.statusCode(), errorBody);
+							return Mono.error(new UpstreamServiceException(
+									response.statusCode(), errorBody));
+						}))
+				.bodyToMono(JsonNode.class)
+				.doOnSuccess(response -> log.info("Successfully fetched call details for: {}", callId))
+				.doOnError(error -> log.error("Failed to fetch call details for {}: {}", callId, error.getMessage()));
+	}
 
 	public String getAgentId() {
 		return properties.agentId();
