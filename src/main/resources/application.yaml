@@ -28,7 +28,7 @@ app:
     language: en
     system-prompt-file: classpath:prompts/system-prompt.txt
     first-message-file: classpath:prompts/first-message.txt
-    calls-path: /v1/convai/phone-calls
+    calls-path: /v1/convai/twilio/outbound-call
     agent-id: ${ELEVENLABS_AGENT_ID}
     agent-phone-number-id: ${ELEVENLABS_AGENT_PHONE_NUMBER_ID}
     status-callback-url: ${ELEVENLABS_STATUS_CALLBACK_URL:}
@@ -37,7 +37,14 @@ app:
       - call.ringing
       - call.answered
       - call.completed
+      - call.ended
+      - call_initiation_failure
+      - call.busy
+      - call.no_answer
       - call.failed
+      - call.canceled
+      - call.unreachable
+      - call.rejected
   twilio:
     account-sid: ${TWILIO_ACCOUNT_SID}
     auth-token: ${TWILIO_AUTH_TOKEN}

@@ -19,7 +19,12 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -205,6 +210,33 @@ public class ElevenLabsClient {
 		return null;
 	}
 
+	private static String normalizeDateTimeString(String input) {
+		if (input == null || input.isBlank()) return input;
+		// Try OffsetDateTime
+		try {
+			OffsetDateTime odt = OffsetDateTime.parse(input);
+			return odt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+		} catch (DateTimeParseException ignored) {}
+
+		// Try LocalDateTime
+		try {
+			LocalDateTime ldt = LocalDateTime.parse(input);
+			OffsetDateTime odt = ldt.atOffset(ZoneOffset.ofHours(8));
+			return odt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+		} catch (DateTimeParseException ignored) {}
+
+		// Try LocalDate
+		try {
+			LocalDate ld = LocalDate.parse(input);
+			LocalDateTime ldt = ld.atStartOfDay();
+			OffsetDateTime odt = ldt.atOffset(ZoneOffset.ofHours(8));
+			return odt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+		} catch (DateTimeParseException ignored) {}
+
+		// Fallback: return input
+		return input;
+	}
+
 	private record ElevenLabsAgentCreatePayload(
 			String name,
 			@JsonProperty("conversation_config") ConversationConfig conversationConfig
@@ -258,10 +290,11 @@ public class ElevenLabsClient {
 											ElevenLabsProperties props) {
 			java.util.Map<String, Object> dynamicVariables = new java.util.LinkedHashMap<>();
 			dynamicVariables.put("incident_number", request.incidentNumber());
-			dynamicVariables.put("priority", request.priority());
+			// Use capitalized "Priority" key per requested parameter naming
+			dynamicVariables.put("Priority", request.priority());
 			dynamicVariables.put("short_description", request.shortDescription());
 			if (request.description() != null) dynamicVariables.put("description", request.description());
-			if (request.incidentDateTime() != null) dynamicVariables.put("incident_date_time", request.incidentDateTime().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+			if (request.incidentDateTime() != null) dynamicVariables.put("incident_date_time", normalizeDateTimeString(request.incidentDateTime()));
 			if (request.errorDetails() != null) dynamicVariables.put("error_details", request.errorDetails());
 			if (request.possibleFix() != null) dynamicVariables.put("possible_fix", request.possibleFix());
 

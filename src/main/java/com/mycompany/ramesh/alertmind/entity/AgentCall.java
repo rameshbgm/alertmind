@@ -15,39 +15,38 @@ public record AgentCall(
 		String agentPhoneNumberId,
 		String toNumber,
 		String status,
+		JsonNode requestPayload,
 		JsonNode rawResponse,
-		Instant createdAt,
-		Instant statusUpdatedAt,
-		String callTranscript,
-		Integer callDurationSeconds,
+		JsonNode transcript,
 		String failureReason,
-		String lastCallbackEvent
+		Instant createdAt
 ) {
-	public static AgentCall from(String callId,
-								 String agentId,
-								 String agentPhoneNumberId,
-								 String toNumber,
-								 String status,
-								 JsonNode rawResponse) {
-		return new AgentCall(null, callId, agentId, agentPhoneNumberId, toNumber,
-				status, rawResponse, Instant.now(), null, null, null, null, null);
+	public static AgentCall fromRequest(String toNumber, JsonNode requestPayload) {
+		return new AgentCall(null, null, null, null, toNumber, "created", requestPayload, null, null, null, Instant.now());
 	}
-	
-	public AgentCall withStatusUpdate(String newStatus, String callbackEvent, JsonNode rawResponse) {
-		return new AgentCall(id, callId, agentId, agentPhoneNumberId, toNumber,
-				newStatus, rawResponse, createdAt, Instant.now(), callTranscript, 
-				callDurationSeconds, failureReason, callbackEvent);
+
+	public static AgentCall fromResponse(String callId,
+							 String agentId,
+							 String agentPhoneNumberId,
+							 String toNumber,
+							 String status,
+							 JsonNode rawResponse) {
+		return new AgentCall(null, callId, agentId, agentPhoneNumberId, toNumber, status, null, rawResponse, null, null, Instant.now());
 	}
-	
-	public AgentCall withTranscript(String transcript, Integer durationSeconds) {
-		return new AgentCall(id, callId, agentId, agentPhoneNumberId, toNumber,
-				status, rawResponse, createdAt, statusUpdatedAt, transcript, 
-				durationSeconds, failureReason, lastCallbackEvent);
+
+	public AgentCall withUpdatedResponse(String callId, String agentId, String agentPhoneNumberId, String status, JsonNode rawResponse) {
+		return new AgentCall(this.id, callId, agentId, agentPhoneNumberId, this.toNumber, status, this.requestPayload, rawResponse, this.transcript, this.failureReason, this.createdAt);
 	}
-	
-	public AgentCall withFailure(String reason) {
-		return new AgentCall(id, callId, agentId, agentPhoneNumberId, toNumber,
-				status, rawResponse, createdAt, statusUpdatedAt, callTranscript, 
-				callDurationSeconds, reason, lastCallbackEvent);
+
+	public AgentCall withTranscript(JsonNode transcript) {
+		return new AgentCall(this.id, this.callId, this.agentId, this.agentPhoneNumberId, this.toNumber, this.status, this.requestPayload, this.rawResponse, transcript, this.failureReason, this.createdAt);
+	}
+
+	public AgentCall withStatusUpdate(String status, JsonNode rawResponse) {
+		return new AgentCall(this.id, this.callId, this.agentId, this.agentPhoneNumberId, this.toNumber, status, this.requestPayload, rawResponse, this.transcript, this.failureReason, this.createdAt);
+	}
+
+	public AgentCall withFailure(String failureReason) {
+		return new AgentCall(this.id, this.callId, this.agentId, this.agentPhoneNumberId, this.toNumber, "failed", this.requestPayload, this.rawResponse, this.transcript, failureReason, this.createdAt);
 	}
 }
